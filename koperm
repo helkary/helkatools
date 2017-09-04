@@ -1,1 +1,75 @@
-/usr/local/bin/koperm
+#!/bin/bash
+#
+# Hopeakettu 12/03/2016 - Sama kuin normaali "permissions"-skripta,
+# mutta tämä kohdistuu vain yksittäiseen kaupunginosaan (nopeampi)
+#
+# Hopeakettu 03/05/2016 - Skripta oikeille oikeuksille /srv/site-kansiossa
+# Kun ikinä asennat Joomlaan mitään lisäosia, niin voit tilapäisesti
+# vaihtaa chmodilla oikeudet ja ajaa sitten tämän skriptan oikeukien
+# resetoimiseen.
+
+# Laita oikeat omistajuudet ja chmodit.
+# Kuviin ja muihin oleellisiin tiedostoihin
+# www-datalla eli palvelimella saa olla kirjoitusoikeudet.
+
+# Ethän sekoita tuplaquootteja ja yksquootteja! Sudo käyttää
+# yksquootteja, käytä siis sen jälkeen tuplaquototteja!
+
+# Määritä kaupunginosan nimi ensimmäisestä muuttujasta. Huom:
+# Ei välilyöntejä, ja dollarimerkki vain jo määrättyihin muuttujiin.
+KAUPUNGINOSA=${1}
+
+# Äjä jatka, jos arvoa $1 (kaupunginosaa) ei ole syötetty.
+# HUOM! -z = Jos ON tyhjä
+if [ -z "${1}" ]; then
+	echo "Syötäthän kenttään kaupunginosan teknisen nimen! (/srv/site/<kaupunginosa>/)"
+	exit
+fi
+
+# Älä jatka, jos kaupunginosan hakemistoa ei ole olemassa.
+# -s = Jos ON hakemisto, tarkistetaan jos EI OLE
+if [ ! -d "/srv/site/${1}/" ]; then
+	echo "Polkua /srv/site/${1}/" ei ole olemassa!
+	exit
+fi
+
+# Sudolle annetaan komento '-merkeissä, ettei tarvitse jokaista kirjainta
+# erikseen \-merkeillä merkata. Kuitenkin muuttuja $KAUPUNGINOSA vaatii
+# "-merkit. Joten ratkaisu on '"$KAUPUNGINOSA"'.
+#
+# Sudo tulkitsee ;-merkin komennonvaihtona, muista laittaa tämä aina perälle
+# kun vaihdat komentoa!
+sudo sh -c '
+
+echo "Phase 1/6: hopeakettu:www-data";
+chown -R hopeakettu:www-data /srv/site/'"$KAUPUNGINOSA"'/;
+echo "Phase 2/6: chmod 750 on directories.";
+find /srv/site/'"$KAUPUNGINOSA"'/* -type d -print0 |xargs -0 chmod 0750;
+echo "Phase 3/6: chmod 740 on files.";
+find /srv/site/'"$KAUPUNGINOSA"' -type f -print0 |xargs -0 chmod 0740;
+echo "Phase 4/6: chmod 760 on images etc.";
+# Alla olevassa voisi käyttää {}-merkkejä kansioiden sijaan, jos
+# tämä ominaisuus toimisi kunnolla...
+find /srv/site/'"$KAUPUNGINOSA"'/images -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/logs -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/cache -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/tmp -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/administrator/cache -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_frontpage -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_new_fp -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_blogs -type f -print0 |xargs -0 chmod 0760;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_events -type f -print0 |xargs -0 chmod 0760;
+echo "Phase 5/6: chmod 770 on image directories etc.";
+find /srv/site/'"$KAUPUNGINOSA"'/images -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/logs -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/cache -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/tmp -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/administrator/cache -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_frontpage -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_new_fp -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_blogs -type d -print0 |xargs -0 chmod 0770;
+find /srv/site/'"$KAUPUNGINOSA"'/templates/helka_events -type d -print0 |xargs -0 chmod 0770;
+echo "Phase 6/6: chmod 750 on .htaccess";
+chmod 750 /srv/site/'"$KAUPUNGINOSA"'/.htaccess;
+echo "You are done!";
+'
